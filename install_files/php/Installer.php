@@ -104,11 +104,15 @@ class Installer
 
     protected function onValidateDatabase()
     {
-        if ($this->post('db_type') != 'sqlite' && !strlen($this->post('db_host')))
-            throw new InstallerException('Please specify a database host', 'db_host');
+        // Add heorku exception 
+        $exploded_db = explode('_', $this->post('db_type'));
+        if(!$exploded_db || count($exploded_db) != 2 || $exploded_db[1] != 'heroku' ){
+             if ($this->post('db_type') != 'sqlite' && !strlen($this->post('db_host')))
+                throw new InstallerException('Please specify a database host', 'db_host');
 
-        if (!strlen($this->post('db_name')))
-            throw new InstallerException('Please specify the database name', 'db_name');
+            if (!strlen($this->post('db_name')))
+                throw new InstallerException('Please specify the database name', 'db_name');
+        }
 
         $config = array_merge(array(
             'type' => null,
@@ -155,6 +159,18 @@ class Installer
                     $dsn = 'sqlsrv:Server='.$host.(empty($port) ? '':','.$_port).';Database='.$name;
                 }
             break;
+
+            case 'pgsql_heroku':
+                $url = parse_url(getenv("DATABASE_URL"));
+                $host = $url["host"];
+                $user = $url["user"];
+                $pass = $url["pass"];
+                $name = substr($url["path"], 1);
+
+                $_host = ($host) ? 'host='.$host.';' : '';
+                $dsn = 'pgsql:'.$_host.'dbname='.$name;
+                if ($port) $dsn .= ";port=5432";
+                break;
         }
         try {
             $db = new PDO($dsn, $user, $pass, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
@@ -169,7 +185,7 @@ class Installer
         if ($type == 'sqlite') {
             $fetch = $db->query("select name from sqlite_master where type='table'", PDO::FETCH_NUM);
         }
-        elseif ($type == 'pgsql') {
+        elseif ($type == 'pgsql' || $type == 'pgsql_heroku') {
             $fetch = $db->query("select table_name from information_schema.tables where table_schema = 'public'", PDO::FETCH_NUM);
         }
         elseif ($type === 'sqlsrv') {
@@ -449,6 +465,17 @@ class Installer
         ));
 
         extract($config);
+
+        $exploded_db = explode('_', $this->post('db_type'));
+        if($exploded_db && (count($exploded_db) == 2 && $exploded_db[1] == 'heroku') ){
+            $type = $exploded_db[0];
+
+            $url = parse_url(getenv("DATABASE_URL"));
+            $host = $url["host"];
+            $user = $url["user"];
+            $pass = $url["pass"];
+            $name = substr($url["path"], 1);
+        }
 
         switch ($type) {
             default:

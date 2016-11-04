@@ -67,6 +67,7 @@
                     'config',
                     'config/mysql',
                     'config/pgsql',
+                    'config/pgsql_heroku',
                     'config/sqlite',
                     'config/sqlsrv',
                     'config/fail',

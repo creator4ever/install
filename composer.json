@@ -1,0 +1,10 @@
+{
+ "require": {
+	"ext-mbstring": "*",
+	"ext-gd": "*"
+ },
+ "warmup": [
+	"php artisan config:cache",
+	"php artisan route:cache"
+ ]
+}
